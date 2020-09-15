@@ -1,0 +1,115 @@
+BootStrap: docker
+From: nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
+%environment
+    # cuda path
+    PATH=/opt/anaconda/bin:/usr/local/nvidia:$PATH
+    
+    # oracle path
+    PATH=/opt/oracle/instantclient_12_2:$PATH
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_12_2:$LD_LIBRARY_PATH
+
+%post
+    #### add universe repo and install some packages
+    apt-get -y update
+    apt-get clean
+    
+    #### packages
+    apt-get -y install build-essential apt-utils wget
+    apt-get -y install gdebi-core
+    apt-get -y install libapparmor1
+
+    apt-get update
+    apt-get -y install git cmake g++ vim unzip
+    apt-get -y install tmux tree
+    apt-get -y install locales
+    apt-get -y install alien
+    apt-get -y install libaio1
+    
+    #the following libs are needed for opencv:
+    apt-get install -y libsm6 libxext6 libxrender-dev libglib2.0-0
+
+    #### git lfs
+    wget --quiet https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh
+    bash script.deb.sh
+    apt-get -y install git-lfs
+
+    ##### oracle
+    mkdir -p /opt/oracle
+    cd /opt/oracle
+    wget --quiet https://research-singularity-registry.oit.duke.edu/Oracle/instantclient-basic-linux.x64-12.2.0.1.0.zip
+    wget --quiet https://research-singularity-registry.oit.duke.edu/Oracle/instantclient-sqlplus-linux.x64-12.2.0.1.0.zip
+    wget --quiet https://research-singularity-registry.oit.duke.edu/Oracle/instantclient-sdk-linux.x64-12.2.0.1.0.zip
+    unzip instantclient-basic-linux.x64-12.2.0.1.0.zip
+    unzip instantclient-sqlplus-linux.x64-12.2.0.1.0.zip
+    unzip instantclient-sdk-linux.x64-12.2.0.1.0.zip
+    cd instantclient_12_2
+    ln -s libclntsh.so.12.1 libclntsh.so
+    ln -s libocci.so.12.1 libocci.so    
+    
+    #### anaconda
+    wdir=$(pwd)
+    wget --quiet https://repo.continuum.io/archive/Anaconda3-5.1.0-Linux-x86_64.sh -O ${wdir}/anaconda.sh
+    bash anaconda.sh -b -p /opt/anaconda
+    rm anaconda.sh
+    
+    export PATH="/opt/anaconda/bin:$PATH"
+    
+    apt-get -y install libcupti-dev
+    #note that tf 1.12 is consistent with anaconda 3.5 and CUDA 9.0
+    pip install --no-cache-dir --upgrade tensorflow-gpu==1.12
+    pip install --no-cache-dir --upgrade keras
+    pip install --no-cache-dir --upgrade python-dotenv
+    pip install --no-cache-dir --upgrade gensim
+    pip install --no-cache-dir --upgrade nibabel
+    pip install --no-cache-dir --upgrade mpld3
+
+    #My Packages
+    #Pytorch
+    conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
+    pip install --no-cache-dir --upgrade torchsummary
+    
+    #Admission Prediction
+    pip install --no-cache-dir --upgrade theano
+    pip install --no-cache-dir --upgrade sklearn
+    pip install --no-cache-dir --upgrade six
+    pip install --no-cache-dir --upgrade plotly
+    pip install --no-cache-dir --upgrade seaborn
+    pip install --no-cache-dir --upgrade matplotlib
+    pip install --no-cache-dir --upgrade numba
+
+    #Framingham Project and Genetic Data:
+    pip install --no-cache-dir --upgrade pandas-plink
+    pip install --no-cache-dir --upgrade pyplink
+    conda install -c bioconda plink
+    
+    #Group Lasso:
+    conda install -c conda-forge sklearn-contrib-lightning
+    
+    #NLP
+    pip install --no-cache-dir --upgrade fasttext
+    conda install -c conda-forge datadotworld-py
+    
+    #DICOM files and other images
+    pip install --no-cache-dir --upgrade SimpleITK
+    conda install -c conda-forge pydicom
+    pip install --no-cache-dir --upgrade Pillow
+    
+    #houssamzenati Efficient GAN Anomaly Detection
+    pip install --no-cache-dir --upgrade regex
+    
+    #Learn To Pay Attention
+    pip install --no-cache-dir --upgrade opencv-python
+    pip install --no-cache-dir --upgrade tensorboardX
+    
+    #Segmentation
+    #note that niftynet requires tf 1.12 and opencv
+    pip install --no-cache-dir --upgrade niftynet
+    
+    # Clean up
+    apt-get clean
+    apt-get -y autoremove
+    rm -rvf /var/lib/apt/lists/*
+
+%runscript
+    exec /bin/bash
